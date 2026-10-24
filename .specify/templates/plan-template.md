@@ -31,7 +31,40 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Gates from `.specify/memory/constitution.md` (v3.0.0). Each MUST be checked or justified in
+Complexity Tracking:
+
+- [ ] **Authority (Art. I)**: Hackathon brief and existing repository inspected; mandatory features
+      and team-owned interfaces identified; conflicts resolved in favour of the brief.
+- [ ] **Technology (Art. III.1)**: Uses technologies required by the brief/repo; any new choice is
+      documented; no existing technology replaced without justification.
+- [ ] **UI decision (Art. III.2–3, XIII)**: Assistant interface chosen by the Art. III.2 rule order
+      and documented; Chainlit (if used) is a presentation layer on the app's real identity; agent,
+      tools, RAG and business logic are reusable independently of the UI.
+- [ ] **Spec-first (Art. IV)**: Spec exists with permissions, interfaces, errors and test cases;
+      out-of-brief modules not added.
+- [ ] **Architecture (Art. V, XIV)**: Logical layers separated; existing services/endpoints reused;
+      new endpoints defined in contracts with validated schemas and server-side authorization.
+- [ ] **Agent & tools (Art. VI, VII)**: Tools validate input, verify identity/permissions, apply
+      employee/team/department scope, use authoritative services; no success claimed without
+      service confirmation.
+- [ ] **Auth & RBAC (Art. VIII)**: Existing auth integrated (or justified new auth); Employee /
+      Manager / HR Admin enforced in the backend; role/ID in chat or client never trusted.
+- [ ] **Persistence (Art. IX)**: Persistent DB with migrations; labelled demo seed; any mock is
+      clearly identified and replaceable; no hardcoded/in-memory data as the database.
+- [ ] **Dashboards (Art. X)**: Required dashboards integrated; figures from backend queries only;
+      RAG never used for live counts or balances.
+- [ ] **RAG (Art. XI)**: Retrieval with metadata, access restrictions and citations; "not found"
+      stated; no fabricated policy or citation.
+- [ ] **Leave (Art. XII)**: No self-approval; submission only through the authorized workflow after
+      confirmation, recorded and confirmed by the backend.
+- [ ] **Secrets (Art. XV)**: Env-based config; `.env.example` placeholders; clear failure on missing
+      essential config.
+- [ ] **Security (Art. XVI)**: Least privilege, audit logging, safe errors; documents and user text
+      treated as data, not instructions.
+- [ ] **Testing (Art. XVII)**: Tests planned for auth, RBAC, persistence, dashboards, tools, RAG,
+      agent failure paths, leave, UI-to-backend and end-to-end workflows.
+- [ ] **Done (Art. XX)**: Demonstrable in the intended application, with setup docs.
 
 ## Project Structure
 

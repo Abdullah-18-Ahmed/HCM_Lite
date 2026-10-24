@@ -1,0 +1,57 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1059 >>
+stream
+BT
+/F1 11 Tf
+50 790 Td
+15 TL
+(---) Tj T*
+(title: Employee Handbook Summary) Tj T*
+(version: 1.0) Tj T*
+(doc_type: policy) Tj T*
+(access_scope: all_employees) Tj T*
+(demo: true) Tj T*
+(---) Tj T*
+(DEMO - fictional company; all data is synthetic.) Tj T*
+(Employee Handbook Summary \(extract\)) Tj T*
+() Tj T*
+(Working time: 09:00-17:30 Mon-Fri, 30 min unpaid lunch. Check in via HCM Lite.) Tj T*
+(Hybrid: at least 2 office days per week \(core days Tue, Wed\) by manager agreement.) Tj T*
+(Annual leave: 20 days/yr, request 10 working days ahead, max 15 consecutive days;) Tj T*
+(carry over max 5 days until 31 March.) Tj T*
+(Sick leave: 10 days/yr, notify manager before 09:30, certificate beyond 3 days.) Tj T*
+(Casual leave: 5 days/yr for short-notice personal matters.) Tj T*
+(Late: after 09:10 \(10-minute grace\). More than 4 late arrivals a month triggers) Tj T*
+(a manager conversation.) Tj T*
+(Leave approvals: managers decide within 3 working days; silence escalates to HR.) Tj T*
+(Questions: ask HR via the assistant or hr-demo@example.com.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000317 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1428
+%%EOF

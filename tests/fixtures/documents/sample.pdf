@@ -1,0 +1,122 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+/Title (Employee Handbook Summary)
+/Version (1\0560)
+/DocType (policy)
+/AccessScope (all\137employees)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 2
+/Kids [ 5 0 R 7 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+>>
+endobj
+5 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 267
+>>
+stream
+BT
+/F1 11 Tf
+1 0 0 1 72 700 Tm
+(Employee Handbook Summary) Tj
+0 -16 Td
+(Welcome. This handbook summarises the company policies.) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(1. Working time) Tj
+0 -16 Td
+(The standard week is 40 hours, Monday to Friday, 09:00 to 17:30.) Tj
+0 -16 Td
+ET
+endstream
+endobj
+7 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 4 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 358
+>>
+stream
+BT
+/F1 11 Tf
+1 0 0 1 72 700 Tm
+(2. Leave overview) Tj
+0 -16 Td
+(Full-time employees receive 20 days of paid annual leave and 5 days of casual) Tj
+0 -16 Td
+(leave per year. Requests are submitted through the HR assistant.) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(3. Where to find more) Tj
+0 -16 Td
+(The full policies are published in the document library.) Tj
+0 -16 Td
+ET
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000015 00000 n 
+0000000157 00000 n 
+0000000222 00000 n 
+0000000271 00000 n 
+0000000368 00000 n 
+0000000500 00000 n 
+0000000818 00000 n 
+0000000950 00000 n 
+trailer
+<<
+/Size 9
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+1359
+%%EOF

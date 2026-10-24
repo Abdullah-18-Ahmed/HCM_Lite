@@ -208,3 +208,21 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.12 (`>=3.12,<3.14`); openai-agents 0.24, chainlit 2.12, fastapi 0.162 + uvicorn 0.54, sqlalchemy 2.1 (async) + aiosqlite 0.22 + alembic 1.20, pyjwt 2.15, qdrant-client 1.20 (embedded local mode), pydantic 2.14, pydantic-settings 2.16, python-dotenv 1.2, pypdf 6.21; pytest 9 + pytest-asyncio + httpx (002-hcm-lite-ai-app)
+- SQLite is the HR database (`DATABASE_URL`; schema only via Alembic revisions in `hcm_lite/db/migrations/versions/`); data access only via `hcm_lite/services` → `hcm_lite/db/repositories.py`. FastAPI routes (`hcm_lite/api/`), Chainlit (`app.py`) and agent tools all call the same services.
+- Application package is `hcm_lite/`; never create a top-level `agents/` package (it shadows the SDK's `agents` module).
+
+## Resuming Work
+- **Start with `HANDOFF.md` at the repo root**: current state, where work stopped, environment, gotchas, next steps.
+
+## Project Skills and Subagents
+- `/hcm-implement` → `hcm-implementer` (builds tasks test-first), then `hcm-test-verifier` + `hcm-reviewer` automatically
+- `/hcm-review` → `hcm-reviewer` (read-only constitution/security review)
+- `/hcm-test` → `hcm-test-verifier` (runs suites, logs real results to `specs/002-hcm-lite-ai-app/checklists/demo-log.md`)
+- Definitions: `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`
+
+## Recent Changes
+- 002-hcm-lite-ai-app: plan, research, data model, contracts (supersedes 001)
+- 001-hcm-hr-assistant: superseded by 002 under constitution v3.1.0
