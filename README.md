@@ -110,6 +110,7 @@ Documents live in `data/demo/documents/policies/` (Markdown with flat YAML front
 
 | Symptom | Fix |
 |---------|-----|
+| Sign-in always fails with a server error (`No module named 'asyncpg'`) | `DATABASE_URL` is set in `.env`. Chainlit reads `.env` too and treats it as its own Postgres persistence layer. Remove the line — the app's default (`sqlite+aiosqlite:///./data/hcm_lite.db`) is used automatically |
 | "Database schema is out of date" | `.venv\Scripts\alembic upgrade head` |
 | `database is locked` | another process holds SQLite; close other app instances |
 | Missing key error at startup | set `OPENAI_API_KEY` in `.env` |
