@@ -94,7 +94,7 @@ async def startup() -> dict[str, Any]:
     embedder = OpenAIEmbedder(
         api_key=settings.openai_api_key.get_secret_value(),
         model=settings.openai_embedding_model, timeout=settings.model_timeout_seconds)
-    retriever = Retriever(QdrantStore.from_settings(settings), embedder, settings)
+    retriever = Retriever(lambda: QdrantStore.from_settings(settings), embedder, settings)
     policy = PolicyService(retriever)
     metrics = MetricsService(factory, authz, late_grace_minutes=settings.late_grace_minutes)
     leave = LeaveService(factory, authz, auditor, policy=policy)
@@ -103,7 +103,7 @@ async def startup() -> dict[str, Any]:
                         run_config=production_run_config(),
                         max_turns=settings.agent_max_turns)
     services.agent = build_agent(settings, TOOLS)
-    index_empty = retriever._store.count() == 0  # noqa: SLF001 — startup empty-index note
+    index_empty = retriever.count() == 0
     _runtime.update(settings=settings, engine=engine, auth=auth, services=services,
                     index_empty=index_empty)
     logger.info("app.started", extra={"outcome": "ok"})

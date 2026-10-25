@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
     embedder = OpenAIEmbedder(
         api_key=settings.openai_api_key.get_secret_value(),
         model=settings.openai_embedding_model, timeout=settings.model_timeout_seconds)
-    retriever = Retriever(QdrantStore.from_settings(settings), embedder, settings)
+    retriever = Retriever(lambda: QdrantStore.from_settings(settings), embedder, settings)
     policy = PolicyService(retriever)
     metrics_svc = MetricsService(factory, authz, late_grace_minutes=settings.late_grace_minutes)
     leave_svc = LeaveService(factory, authz, auditor, policy=policy)
@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI):
     app.state.engine = engine
     app.state.services = services
     app.state.conversations = ConversationStore(idle_minutes=settings.session_idle_minutes)
-    app.state.vector_count = lambda: retriever._store.count()  # noqa: SLF001
+    app.state.vector_count = retriever.count  # short-lived client per probe
     logger.info("api.started", extra={"outcome": "ok"})
     try:
         yield
