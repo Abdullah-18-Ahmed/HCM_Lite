@@ -79,7 +79,9 @@ class AuthService:
             dummy_verify(password)
             await self._fail(AuditAction.ACCOUNT_LOCKED, channel, user.id)
             return None
-        if not verify_password(password, user.password_hash):
+        # Stripping is normalization for copy-paste artifacts, not a weakening: generated
+        # passwords never contain leading/trailing whitespace.
+        if not verify_password(password.strip(), user.password_hash):
             locked = await self._record_failure(user, now)
             await self._fail(AuditAction.LOGIN_FAILED, channel, user.id)
             if locked:
