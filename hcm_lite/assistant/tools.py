@@ -30,7 +30,12 @@ __all__ = ["TOOLS", "RunContextWrapper", "hr_tool", "run_service", "safe_failure
 
 logger = logging.getLogger("hcm_lite.tools")
 
-TOOL_TIMEOUT_SECONDS = 10
+import os
+
+# Per-tool wall-clock limit. Raised for cloud deploys where the DB and vector store can be
+# in different regions from the app (each query crosses the network); override with the
+# HCM_TOOL_TIMEOUT_SECONDS env var if needed.
+TOOL_TIMEOUT_SECONDS = int(os.getenv("HCM_TOOL_TIMEOUT_SECONDS", "30"))
 SOURCE_UNAVAILABLE = "The HR data source is temporarily unavailable."
 
 

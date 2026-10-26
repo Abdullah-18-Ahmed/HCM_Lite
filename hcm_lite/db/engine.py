@@ -76,7 +76,14 @@ def create_engine_for_url(url: str) -> AsyncEngine:
     kwargs: dict[str, Any] = {}
     if make_url(url).get_backend_name() == "postgresql":
         # Supabase/Postgres requires TLS; pool_pre_ping survives the pooler dropping idle conns.
-        kwargs = {"connect_args": {"ssl": "require"}, "pool_pre_ping": True, "pool_recycle": 300}
+        # statement_cache_size=0: asyncpg must not cache prepared statements behind a
+        # connection pooler (Supabase/PgBouncer), or reused connections raise stale-statement
+        # errors that surface to the agent as "HR data source unavailable".
+        kwargs = {
+            "connect_args": {"ssl": "require", "statement_cache_size": 0},
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+        }
     engine = _create_async_engine(url, **kwargs)
     if engine.dialect.name == "sqlite":
         _install_sqlite_listeners(engine)
