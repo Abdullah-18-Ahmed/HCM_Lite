@@ -14,16 +14,17 @@ py -3.12 -m venv .venv
 .venv\Scripts\pip install -r requirements-dev.txt
 
 copy .env.example .env
-# Edit .env: set OPENAI_API_KEY. Generate the two secrets:
-#   python -c "import secrets; print(secrets.token_urlsafe(48))"   # CHAINLIT_AUTH_SECRET
-#   python -c "import secrets; print(secrets.token_urlsafe(48))"   # API_JWT_SECRET (>= 32 chars)
+# Edit .env: set OPENAI_API_KEY. Generate the API secret (>= 32 chars):
+#   python -c "import secrets; print(secrets.token_urlsafe(48))"   # API_JWT_SECRET
 
 .venv\Scripts\alembic upgrade head                # create the SQLite schema (data/hcm_lite.db)
 .venv\Scripts\python -m hcm_lite.db seed          # demo data; PRINTS demo passwords ONCE
 .venv\Scripts\python -m hcm_lite.rag.ingest ingest  # index the demo HR documents (real embeddings)
 
-.venv\Scripts\chainlit run app.py                 # UI  → http://localhost:8000
-.venv\Scripts\uvicorn hcm_lite.api.main:app --port 8001   # API → http://localhost:8001/docs
+# UI + API are one app. First startup takes ~10-15s (embedded Qdrant init).
+.venv\Scripts\uvicorn hcm_lite.api.main:app --port 8001
+# UI  → http://localhost:8001/
+# API → http://localhost:8001/docs
 ```
 
 Demo sign-in users (created by `seed`; passwords are random per seed run and **printed by
@@ -78,7 +79,7 @@ rejects or edits records.
 ## Architecture
 
 ```
-Chainlit (app.py :8000)   FastAPI (hcm_lite/api :8001)   agent tools
+SPA (hcm_lite/api/static)   FastAPI (hcm_lite/api :8001)   agent tools
         └──────────────────────┬──────────────────────────┘
                         hcm_lite/services  (authorization + business rules)
                                └────────── hcm_lite/db/repositories.py (SQLAlchemy async)
@@ -110,7 +111,7 @@ Documents live in `data/demo/documents/policies/` (Markdown with flat YAML front
 
 | Symptom | Fix |
 |---------|-----|
-| Sign-in always fails with a server error (`No module named 'asyncpg'`) | `DATABASE_URL` is set in `.env`. Chainlit reads `.env` too and treats it as its own Postgres persistence layer. Remove the line — the app's default (`sqlite+aiosqlite:///./data/hcm_lite.db`) is used automatically |
+| UI slow / blank on first load | first startup initializes embedded Qdrant (~10-15s); wait for `Application startup complete.` then reload |
 | "Database schema is out of date" | `.venv\Scripts\alembic upgrade head` |
 | `database is locked` | another process holds SQLite; close other app instances |
 | Missing key error at startup | set `OPENAI_API_KEY` in `.env` |
@@ -118,11 +119,10 @@ Documents live in `data/demo/documents/policies/` (Markdown with flat YAML front
 | Empty policy answers | run `python -m hcm_lite.rag.ingest ingest` (see the welcome note) |
 | Embedding dimension mismatch | `python -m hcm_lite.rag.ingest rebuild` after changing `OPENAI_EMBEDDING_MODEL` |
 | Account locked | 5 wrong passwords lock for `LOGIN_LOCK_MINUTES` (default 15) |
-| Port already in use | Chainlit `--port`, uvicorn `--port` |
+| Port already in use | run uvicorn with a different `--port` |
 
 ## Limitations
 
 No leave approval workflow (requests stay `pending`); basic auth only (no SSO/MFA/reset);
 the JWT deny-list and API conversations are in-memory; SQLite is single-writer; English only;
-no voice/brief support; Chainlit's `user_session_timeout` must stay aligned with
-`SESSION_IDLE_MINUTES` (the app's own idle check is authoritative).
+no voice/brief support.
