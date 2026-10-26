@@ -36,7 +36,7 @@ FOREIGN_KEYS = {
 
 # table -> {(unique?, (columns...))}; a COLLATE index reports its column in PRAGMA index_info
 INDEXES = {
-    "users": {(True, ("username",)), (True, ("employee_id",))},
+    "users": {(True, ("username",)), (True, ("employee_id",)), (True, ("email",))},
     "login_failures": {(False, ("user_id", "at"))},
     "employees": {
         (False, ("department", "employment_status")), (False, ("manager_id",)),
@@ -100,7 +100,7 @@ def test_upgrade_head_creates_every_table(migrated_db, tmp_path):
     with _connect(tmp_path) as conn:
         version = conn.execute("SELECT version_num FROM alembic_version").fetchall()
     assert version == [(head_revision(),)]
-    assert head_revision() == "0001"
+    assert head_revision() == "0002"
 
 
 def test_foreign_keys_declared(migrated_db, tmp_path):
@@ -159,6 +159,39 @@ def test_downgrade_base_then_upgrade_head(migrated_db, alembic_cfg, tmp_path):
     assert _tables(tmp_path) == TABLES | {"alembic_version"}
 
 
+def _user_columns(tmp_path: Path) -> set[str]:
+    with _connect(tmp_path) as conn:
+        return {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+
+
+def test_0002_down_up_cycle_adds_email_and_new_values(migrated_db, alembic_cfg, tmp_path):
+    assert "email" in _user_columns(tmp_path)
+    run_alembic(command.downgrade, alembic_cfg, "0001")
+    assert "email" not in _user_columns(tmp_path)
+    run_alembic(command.upgrade, alembic_cfg, "head")
+    assert "email" in _user_columns(tmp_path)
+
+    with _connect(tmp_path) as conn:
+        conn.execute("INSERT INTO departments (name, is_demo) VALUES ('Administration', 0)")
+        conn.execute(
+            "INSERT INTO employees (id, full_name, department, job_title, employment_status,"
+            " hire_date, is_demo) VALUES ('A0001', 'Admin', 'Administration', 'Administrator',"
+            " 'active', '2026-01-01', 0)"
+        )
+        conn.execute(
+            "INSERT INTO users (id, username, email, password_hash, role, employee_id, active,"
+            " is_demo, created_at) VALUES ('U9001', 'root', 'root@demo.hcm', 'h', 'admin',"
+            " 'A0001', 1, 0, '2026-01-01 00:00:00')"
+        )
+        conn.execute(
+            "INSERT INTO audit_events (at, action, channel, outcome, correlation_id)"
+            " VALUES ('2026-01-01 00:00:00', 'user_created', 'api', 'ok', 'cid')"
+        )
+        conn.commit()
+        assert conn.execute("SELECT role FROM users WHERE id='U9001'").fetchone()[0] == "admin"
+        assert conn.execute("SELECT action FROM audit_events").fetchone()[0] == "user_created"
+
+
 def test_second_upgrade_is_a_noop(migrated_db, alembic_cfg, tmp_path):
     with _connect(tmp_path) as conn:
         conn.execute("INSERT INTO departments (name, is_demo) VALUES ('Keep', 0)")
@@ -166,7 +199,7 @@ def test_second_upgrade_is_a_noop(migrated_db, alembic_cfg, tmp_path):
     run_alembic(command.upgrade, alembic_cfg, "head")
     with _connect(tmp_path) as conn:
         assert conn.execute("SELECT name FROM departments").fetchall() == [("Keep",)]
-        assert conn.execute("SELECT version_num FROM alembic_version").fetchall() == [("0001",)]
+        assert conn.execute("SELECT version_num FROM alembic_version").fetchall() == [("0002",)]
 
 
 def test_alembic_check_reports_no_drift(migrated_db, alembic_cfg):

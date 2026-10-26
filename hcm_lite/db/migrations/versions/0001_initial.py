@@ -46,19 +46,19 @@ def upgrade() -> None:
 
     op.create_table('departments',
     sa.Column('name', sa.String(length=60), nullable=False),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.PrimaryKeyConstraint('name', name=op.f('pk_departments'))
     )
     op.create_table('holidays',
     sa.Column('date', sa.Date(), nullable=False),
     sa.Column('name', sa.String(length=80), nullable=False),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.PrimaryKeyConstraint('date', name=op.f('pk_holidays'))
     )
     op.create_table('leave_types',
     sa.Column('id', sa.String(length=10), nullable=False),
     sa.Column('label', sa.String(length=40), nullable=False),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.CheckConstraint("id IN ('annual', 'sick', 'casual', 'unpaid', 'other')", name=op.f('ck_leave_types_id')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_leave_types'))
     )
@@ -79,10 +79,18 @@ def upgrade() -> None:
     with op.batch_alter_table('employees', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_employees_department_employment_status'), ['department', 'employment_status'], unique=False)
         batch_op.create_index(batch_op.f('ix_employees_manager_id'), ['manager_id'], unique=False)
-    op.create_index(
-        'ix_employees_full_name_nocase', 'employees', [sa.text('full_name COLLATE NOCASE')],
-        unique=False,
-    )
+    # Case-insensitive name index. SQLite uses COLLATE NOCASE; PostgreSQL has no NOCASE
+    # collation, so use a functional lower(full_name) index there.
+    if op.get_bind().dialect.name == "postgresql":
+        op.create_index(
+            'ix_employees_full_name_nocase', 'employees', [sa.text('lower(full_name)')],
+            unique=False,
+        )
+    else:
+        op.create_index(
+            'ix_employees_full_name_nocase', 'employees', [sa.text('full_name COLLATE NOCASE')],
+            unique=False,
+        )
 
     op.create_table('payroll_totals',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -92,7 +100,7 @@ def upgrade() -> None:
     sa.Column('gross_total', sa.Numeric(precision=12, scale=2), nullable=False),
     sa.Column('net_total', sa.Numeric(precision=12, scale=2), nullable=False),
     sa.Column('currency', sa.String(length=3), nullable=False),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.CheckConstraint('gross_total >= 0', name=op.f('ck_payroll_totals_gross_non_negative')),
     sa.CheckConstraint('headcount_paid >= 0', name=op.f('ck_payroll_totals_headcount_non_negative')),
     sa.CheckConstraint('net_total >= 0', name=op.f('ck_payroll_totals_net_non_negative')),
@@ -125,7 +133,7 @@ def upgrade() -> None:
     sa.Column('entitled', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('used', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('as_of', sa.Date(), nullable=False),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.CheckConstraint('entitled >= 0', name=op.f('ck_leave_balances_entitled_non_negative')),
     sa.CheckConstraint('used >= 0', name=op.f('ck_leave_balances_used_non_negative')),
     sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], name=op.f('fk_leave_balances_employee_id_employees')),
@@ -139,9 +147,9 @@ def upgrade() -> None:
     sa.Column('password_hash', sa.String(length=200), nullable=False),
     sa.Column('role', sa.String(length=10), nullable=False),
     sa.Column('employee_id', sa.String(length=10), nullable=False),
-    sa.Column('active', sa.Boolean(), server_default=sa.text('1'), nullable=False),
+    sa.Column('active', sa.Boolean(), server_default=sa.true(), nullable=False),
     sa.Column('locked_until', sa.DateTime(), nullable=True),
-    sa.Column('is_demo', sa.Boolean(), server_default=sa.text('0'), nullable=False),
+    sa.Column('is_demo', sa.Boolean(), server_default=sa.false(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.CheckConstraint("role IN ('employee', 'manager', 'hr_admin')", name=op.f('ck_users_role')),
     sa.CheckConstraint('length(username) BETWEEN 3 AND 40', name=op.f('ck_users_username_length')),

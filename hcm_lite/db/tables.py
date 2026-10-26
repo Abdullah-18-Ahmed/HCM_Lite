@@ -125,10 +125,12 @@ class User(Base):
         CheckConstraint(_in("role", Role), name="role"),
         UniqueConstraint("username"),
         UniqueConstraint("employee_id"),
+        UniqueConstraint("email"),
     )
 
     id: Mapped[str] = mapped_column(String(10), primary_key=True)
     username: Mapped[str] = mapped_column(String(40), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[str] = mapped_column(String(10), nullable=False)
     employee_id: Mapped[str] = mapped_column(

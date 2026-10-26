@@ -165,8 +165,73 @@ class UserRepo(_Repo):
         return _to(UserRecord, row) if row else None
 
     @_db_errors
+    async def get_by_email(self, email: str) -> UserRecord | None:
+        row = (await self._s.execute(select(User).where(User.email == email))).scalar()
+        return _to(UserRecord, row) if row else None
+
+    @_db_errors
     async def insert(self, record: UserRecord) -> UserRecord:
         return _to(UserRecord, await self._add(User, record))
+
+    @_db_errors
+    async def list_profiles(
+        self, *, roles: Collection[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Users joined to their employee profile (no password hash). Ordered by user id."""
+        stmt = select(
+            User.id, User.email, Employee.full_name, User.role, Employee.department,
+            Employee.job_title, User.active, User.created_at,
+        ).join(Employee, Employee.id == User.employee_id)
+        if roles is not None:
+            stmt = stmt.where(User.role.in_(list(roles)))
+        stmt = stmt.order_by(User.id)
+        rows = (await self._s.execute(stmt)).all()
+        return [
+            {"user_id": uid, "email": email, "name": name, "role": role,
+             "department": department, "job_title": job_title, "active": bool(active),
+             "created_at": created_at}
+            for uid, email, name, role, department, job_title, active, created_at in rows
+        ]
+
+    @_db_errors
+    async def set_password(self, user_id: str, password_hash: str) -> None:
+        await self._s.execute(
+            update(User).where(User.id == user_id).values(password_hash=password_hash)
+        )
+
+    @_db_errors
+    async def set_role(self, user_id: str, role: str) -> None:
+        await self._s.execute(update(User).where(User.id == user_id).values(role=str(role)))
+
+    @_db_errors
+    async def set_active(self, user_id: str, active: bool) -> None:
+        await self._s.execute(update(User).where(User.id == user_id).values(active=active))
+
+    @_db_errors
+    async def exists_with_role(self, role: str) -> bool:
+        stmt = select(func.count()).select_from(User).where(User.role == str(role))
+        return (await self._s.execute(stmt)).scalar_one() > 0
+
+    @_db_errors
+    async def delete_with_profile(self, user_id: str, employee_id: str) -> None:
+        """Delete a user and every row tied to its employee (children first).
+
+        The user row is deleted before the employee because ``users.employee_id`` references
+        ``employees.id`` (dropping the employee first would violate that foreign key).
+        """
+        async with self._s.begin_nested():
+            await self._s.execute(delete(LoginFailure).where(LoginFailure.user_id == user_id))
+            await self._s.execute(
+                delete(LeaveRequest).where(LeaveRequest.employee_id == employee_id)
+            )
+            await self._s.execute(
+                delete(LeaveBalance).where(LeaveBalance.employee_id == employee_id)
+            )
+            await self._s.execute(
+                delete(Attendance).where(Attendance.employee_id == employee_id)
+            )
+            await self._s.execute(delete(User).where(User.id == user_id))
+            await self._s.execute(delete(Employee).where(Employee.id == employee_id))
 
     @_db_errors
     async def set_locked_until(self, user_id: str, until: datetime | None) -> None:
@@ -221,6 +286,31 @@ class EmployeeRepo(_Repo):
     async def get(self, employee_id: str) -> EmployeeRecord | None:
         row = await self._s.get(Employee, employee_id, populate_existing=True)
         return _to(EmployeeRecord, row) if row else None
+
+    @_db_errors
+    async def next_id(self) -> str:
+        """The next free ``E####`` employee id (ignores ``M``/``H``/other prefixes)."""
+        ids = (await self._s.execute(select(Employee.id).where(Employee.id.like("E%")))).scalars()
+        numbers = [int(i[1:]) for i in ids if i[1:].isdigit()]
+        return f"E{(max(numbers, default=1000) + 1):04d}"
+
+    @_db_errors
+    async def update_profile(self, employee_id: str, *, full_name: str | None = None,
+                             department: str | None = None, job_title: str | None = None) -> None:
+        values = {k: v for k, v in (("full_name", full_name), ("department", department),
+                                    ("job_title", job_title)) if v is not None}
+        if not values:
+            return
+        await self._s.execute(update(Employee).where(Employee.id == employee_id).values(**values))
+
+    @_db_errors
+    async def ensure_department(self, name: str) -> None:
+        """Insert the department if it does not already exist (non-demo)."""
+        exists = (await self._s.execute(
+            select(Department.name).where(Department.name == name))).scalar()
+        if exists is None:
+            async with self._s.begin_nested():
+                await self._s.execute(insert(Department).values(name=name, is_demo=False))
 
     @_db_errors
     async def team_of(self, manager_id: str, *, active_only: bool = False) -> list[EmployeeRecord]:

@@ -18,6 +18,7 @@ class Role(StrEnum):
     EMPLOYEE = "employee"
     MANAGER = "manager"
     HR_ADMIN = "hr_admin"
+    ADMIN = "admin"
 
 
 class EmploymentStatus(StrEnum):
@@ -61,6 +62,13 @@ class AuditAction(StrEnum):
     SESSION_EXPIRED = "session_expired"
     ACCESS_DENIED = "access_denied"
     LEAVE_SUBMITTED = "leave_submitted"
+    PASSWORD_CHANGED = "password_changed"
+    USER_CREATED = "user_created"
+    USER_UPDATED = "user_updated"
+    USER_DEACTIVATED = "user_deactivated"
+    USER_ACTIVATED = "user_activated"
+    USER_DELETED = "user_deleted"
+    ADMIN_CREATED = "admin_created"
 
 
 class AuditOutcome(StrEnum):
@@ -102,6 +110,7 @@ class _Frozen(BaseModel):
 class AuthenticatedUser(_Frozen):
     user_id: str
     username: str
+    email: str
     role: Role
     employee_id: str
     display_name: str
@@ -148,6 +157,7 @@ class DateRange(_Frozen):
 class UserRecord(_Frozen):
     id: str
     username: str = Field(min_length=3, max_length=40)
+    email: str
     password_hash: str = Field(repr=False)
     role: Role
     employee_id: str

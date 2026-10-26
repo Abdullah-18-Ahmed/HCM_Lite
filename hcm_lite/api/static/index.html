@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HCM Lite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-size='17' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- ===================== SETUP (first run: create admin) ===================== -->
+  <main id="setup" class="login" hidden>
+    <div class="login-card">
+      <div class="brand brand--lg">
+        <span class="brand-mark">H</span>
+        <div>
+          <div class="brand-name">HCM Lite</div>
+          <div class="brand-sub">First-time setup</div>
+        </div>
+      </div>
+      <p class="login-lead">No account exists yet. Create the <b>administrator</b> account to get started — the admin can then add HR staff and employees.</p>
+      <form id="setup-form" autocomplete="off">
+        <label class="field"><span>Full name</span><input id="su-name" type="text" required placeholder="Your name" /></label>
+        <label class="field"><span>Email</span><input id="su-email" type="email" required placeholder="you@company.com" autocomplete="username" /></label>
+        <label class="field"><span>Password</span><input id="su-password" type="password" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password" /></label>
+        <button id="su-btn" class="btn btn--primary btn--block" type="submit">Create admin &amp; sign in</button>
+        <p id="su-error" class="form-error" hidden></p>
+      </form>
+    </div>
+    <footer class="login-foot">HCM Lite · built with FastAPI + OpenAI Agents SDK</footer>
+  </main>
+
+  <!-- ===================== LOGIN ===================== -->
+  <main id="login" class="login" hidden>
+    <div class="login-card">
+      <div class="brand brand--lg">
+        <span class="brand-mark">H</span>
+        <div>
+          <div class="brand-name">HCM Lite</div>
+          <div class="brand-sub">AI-powered Human Capital Management</div>
+        </div>
+      </div>
+      <p class="login-lead">Sign in to view your dashboard and talk to the HR assistant.</p>
+      <form id="login-form" autocomplete="off">
+        <label class="field">
+          <span>Email</span>
+          <input id="email" name="email" type="email" required autocomplete="username" placeholder="you@company.com" />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Your password" />
+        </label>
+        <button id="login-btn" class="btn btn--primary btn--block" type="submit">Sign in</button>
+        <p id="login-error" class="form-error" hidden></p>
+      </form>
+    </div>
+    <footer class="login-foot">HCM Lite · built with FastAPI + OpenAI Agents SDK</footer>
+  </main>
+
+  <!-- ===================== APP ===================== -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">H</span>
+        <span class="brand-name">HCM Lite</span>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab is-active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="assistant">AI Assistant</button>
+        <button class="tab" data-view="leave">My Leave</button>
+        <button class="tab" data-view="users" data-roles="admin,hr_admin" hidden>Users</button>
+        <button class="tab" data-view="profile">Profile</button>
+      </nav>
+      <div class="user-menu">
+        <div class="user-info">
+          <span id="user-name" class="user-name"></span>
+          <span id="user-role" class="role-chip"></span>
+        </div>
+        <button id="logout-btn" class="btn btn--ghost" title="Sign out">Sign out</button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view">
+      <div class="view-head">
+        <h1 id="dash-title">Dashboard</h1>
+        <p id="dash-sub" class="view-sub"></p>
+      </div>
+      <div id="dash-notes" class="notes"></div>
+      <div id="dash-grid" class="grid"></div>
+    </section>
+
+    <!-- AI ASSISTANT -->
+    <section id="view-assistant" class="view" hidden>
+      <div class="view-head">
+        <h1>AI Assistant</h1>
+        <p class="view-sub">Ask about HR policies, your leave, attendance or headcount. Answers use your records and the policy library — scoped to what your role may see.</p>
+      </div>
+      <div class="chat">
+        <div id="chat-log" class="chat-log" aria-live="polite"></div>
+        <div id="suggested" class="suggested"></div>
+        <form id="chat-form" class="chat-input">
+          <textarea id="chat-text" rows="1" placeholder="Ask the HR assistant…" maxlength="4000"></textarea>
+          <button id="chat-send" class="btn btn--primary" type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- MY LEAVE -->
+    <section id="view-leave" class="view" hidden>
+      <div class="view-head">
+        <h1>My Leave</h1>
+        <p class="view-sub">Your leave balances and request history.</p>
+      </div>
+      <div id="leave-grid" class="grid"></div>
+    </section>
+
+    <!-- USERS (admin / HR) -->
+    <section id="view-users" class="view" hidden>
+      <div class="view-head">
+        <h1>Users</h1>
+        <p id="users-sub" class="view-sub"></p>
+      </div>
+      <div class="grid">
+        <div class="card col-12">
+          <div class="card-head">
+            <span class="card-title" id="userform-title">Add a user</span>
+            <button id="userform-cancel" class="btn btn--ghost btn--sm" type="button" hidden>Cancel edit</button>
+          </div>
+          <form id="user-form" class="user-form">
+            <label class="field"><span>Full name</span><input id="uf-name" type="text" required /></label>
+            <label class="field"><span>Email</span><input id="uf-email" type="email" required /></label>
+            <label class="field" id="uf-pass-field"><span>Password</span><input id="uf-password" type="password" minlength="8" placeholder="At least 8 characters" /></label>
+            <label class="field"><span>Role</span><select id="uf-role"></select></label>
+            <label class="field"><span>Department</span><input id="uf-dept" type="text" required placeholder="e.g. Engineering" /></label>
+            <label class="field"><span>Job title</span><input id="uf-title" type="text" required placeholder="e.g. Software Engineer" /></label>
+            <div class="user-form__actions">
+              <button id="uf-submit" class="btn btn--primary" type="submit">Create user</button>
+              <span id="uf-error" class="form-error" hidden></span>
+            </div>
+          </form>
+        </div>
+        <div class="card col-12">
+          <div class="card-head"><span class="card-title">All users</span><button id="users-refresh" class="btn btn--ghost btn--sm" type="button">Refresh</button></div>
+          <div id="users-table" class="table-wrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="view-profile" class="view" hidden>
+      <div class="view-head">
+        <h1>Profile</h1>
+        <p class="view-sub">Your account details and password.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="card-head"><span class="card-title">Account</span></div><div id="profile-info"></div></div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Change password</span></div>
+          <form id="pw-form">
+            <label class="field"><span>Current password</span><input id="pw-old" type="password" required autocomplete="current-password" /></label>
+            <label class="field"><span>New password</span><input id="pw-new" type="password" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password" /></label>
+            <button id="pw-btn" class="btn btn--primary" type="submit">Update password</button>
+            <p id="pw-error" class="form-error" hidden></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

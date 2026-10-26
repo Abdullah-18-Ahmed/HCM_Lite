@@ -1,4 +1,30 @@
 <!--
+SYNC IMPACT REPORT (4.2.0)
+==========================
+Version change: 4.1.0 → 4.2.0 (MINOR). Date 2026-10-26.
+  Owner decision: use real data on Supabase (Postgres) instead of demo data, and add user
+  management. Art. III.4 database row → PostgreSQL/Supabase (asyncpg, SSL, IPv4 pooler) in prod,
+  SQLite for tests, one DATABASE_URL, migrations portable; demo seed retired. Art. VIII → email
+  login, roles admin›hr_admin›employee, first-run admin bootstrap, admin/HR user management
+  (create/edit/deactivate/delete), self password change. New: Alembic 0002 (email, admin role,
+  audit actions), UserAdminService, /setup + /users + /me/password routes, SPA setup/Users/Profile
+  screens; "DEMO" labels removed. AI assistant/RAG unchanged. Suite: 410 passed. Supabase verified
+  at revision 0002 with needs_admin=true.
+
+SYNC IMPACT REPORT (4.1.0)
+==========================
+Version change: 4.0.0 → 4.1.0 (MINOR). Date 2026-10-26.
+  Owner decision: remove Chainlit; build a first-party single-page web UI served by FastAPI
+  (login + role dashboard + AI-assistant tab). Art. III.4 interface row and Art. VIII session
+  bullet updated; the generic "Chainlit optional" guidance in Art. III.2/3 and XIII still holds.
+  Removed: app.py, chainlit.md, .chainlit/, the `chainlit` dependency, CHAINLIT_AUTH_SECRET, and
+  the Chainlit-only tests (test_app_auth, test_app_dashboard, integration/conftest, smoke asserts).
+  Added: hcm_lite/api/static/{index.html,styles.css,app.js}; StaticFiles mount at "/" in
+  hcm_lite/api/main.py. Suite: 372 passed. Live UI verified (login, RBAC 403, dashboard, assistant
+  with citations).
+  ⚠ Stale references to update later: specs/002 spec/plan/research/quickstart/tasks and README
+  still mention Chainlit; HANDOFF updated. The backend/service layer is unchanged.
+
 SYNC IMPACT REPORT (4.0.0)
 ==========================
 Version change: 3.2.0 → 4.0.0 (MAJOR)
@@ -249,12 +275,12 @@ Decided by the project owner on 2026-10-25:
 
 | Concern | Decision |
 |---------|----------|
-| Structured database | **SQLite**, accessed through **SQLAlchemy 2** (async, `aiosqlite` driver) with **Alembic** migrations. `DATABASE_URL` allows a later switch to PostgreSQL without code changes |
+| Structured database | **PostgreSQL (Supabase)** in use as of 2026-10-26, via **SQLAlchemy 2** async with the **asyncpg** driver (SSL required, connected over the Supabase IPv4 session pooler) and **Alembic** migrations. **SQLite/aiosqlite** remains the driver for the test suite. One `DATABASE_URL` switches between them; migrations are written to run on both. Demo seed data is no longer used — the database holds real records entered through the app. |
 | Backend API | **FastAPI**, exposing authentication, dashboard, leave and assistant endpoints over the shared service layer |
 | AI orchestration | Python, OpenAI API, OpenAI Agents SDK |
 | Document retrieval | RAG with one vector store chosen and documented in the plan |
 | Testing | pytest |
-| Assistant interface | No frontend exists in the repository, so Art. III.2 rule 5 applies. **Chainlit** is the chat and dashboard UI. It and FastAPI call the same services and the same `AuthService` over the same user table, so there is one authentication system with two entry points (Art. XIII) |
+| Assistant interface | No frontend exists in the repository, so Art. III.2 rule 5 applies. A **custom single-page web UI (static HTML/CSS/JS) served by FastAPI** is the interface: a login screen, a role dashboard, and a separate AI-assistant tab. It calls the FastAPI `/api/v1` endpoints, which call the shared services and the one `AuthService` over the one user table (one authentication system). **Chainlit was removed on 2026-10-26** (owner decision): it added a second session/auth surface and a heavy dependency for no benefit over the first-party UI. |
 
 Changes recorded on 2026-10-25: MongoDB was replaced by SQLite at the owner's request (no MongoDB
 server was reachable), and FastAPI was added as the backend API.
@@ -408,11 +434,17 @@ message or client request.
 
 ### Basic authentication scope
 
-- Username/password login against user records stored in the application database.
+- **Email/password** login against user records stored in the application database.
+- Roles: **admin › hr_admin (HR) › employee** (`manager` kept in the enum for back-compat, not
+  created via the UI). On **first run**, when no admin exists, the app requires creating the admin
+  account; thereafter admin creates HR + employees and HR creates employees, and admin/HR can
+  edit, deactivate or delete the users they manage. Users may change their own password. A role
+  is managed only by someone allowed to manage it (admin → HR/employee; HR → employee; nobody
+  manages an admin or their own account through the admin API).
 - Passwords stored only as salted, slow hashes (e.g., PBKDF2, bcrypt, or argon2); never plaintext.
-- Chainlit uses a server-side session; the FastAPI API issues a short-lived signed token (JWT)
-  carrying only the user id. In both cases the role is loaded from the database on each request,
-  never from the client or the token.
+- The FastAPI API issues a short-lived signed token (JWT) carrying only the user id; the web UI
+  stores it for the session and sends it as a bearer token. The role is loaded from the database
+  on each request, never from the client or the token.
 - Logout, session expiry, and a simple limit on repeated failed login attempts.
 - Out of scope unless the brief requires them: SSO/OAuth, self-registration, password reset,
   multi-factor authentication.
@@ -787,4 +819,4 @@ architecture, and implementation detail in this constitution.
   Justified deviations MUST be recorded in the plan's Complexity Tracking table and, when
   architecturally significant, in an ADR.
 
-**Version**: 4.0.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-25
+**Version**: 4.2.0 | **Ratified**: 2026-10-25 | **Last Amended**: 2026-10-26

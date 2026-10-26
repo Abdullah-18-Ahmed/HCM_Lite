@@ -400,9 +400,9 @@ async def run_seed(
         for uid, username, role, eid in _DEMO_USERS:
             password = password_factory()
             credentials.append(DemoCredential(username, role, eid, password))
-            users.append(UserRecord(id=uid, username=username, password_hash=hasher(password),
-                                    role=role, employee_id=eid, is_demo=True,
-                                    created_at=created_at))
+            users.append(UserRecord(id=uid, username=username, email=f"{username}@demo.hcm",
+                                    password_hash=hasher(password), role=role, employee_id=eid,
+                                    is_demo=True, created_at=created_at))
 
         employees, leave = EmployeeRepo(session), LeaveRepo(session)
         await employees.insert_departments(data.departments)

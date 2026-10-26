@@ -41,7 +41,8 @@ async def test_run_turn_returns_non_empty_text():
     from hcm_lite.models.domain import AuthenticatedUser, Role
 
     settings = _live_settings()
-    user = AuthenticatedUser(user_id="live-smoke", username="live-smoke", role=Role.EMPLOYEE,
+    user = AuthenticatedUser(user_id="live-smoke", username="live-smoke",
+                             email="live-smoke@demo.hcm", role=Role.EMPLOYEE,
                              employee_id="E0", display_name="Live Smoke", department="QA")
     services = Services(agent=build_agent(settings, TOOLS),
                         run_config=production_run_config(),  # tracing disabled (F6)

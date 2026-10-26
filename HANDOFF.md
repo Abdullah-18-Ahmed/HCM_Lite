@@ -95,8 +95,12 @@ T076 are also not done.
 .venv\Scripts\python -m hcm_lite.db seed         # demo data; prints fresh demo passwords once
 .venv\Scripts\python -m hcm_lite.db status
 .venv\Scripts\python -m hcm_lite.rag.ingest      # (US2) index data/demo/documents
-.venv\Scripts\chainlit run app.py                # UI :8000
-.venv\Scripts\uvicorn hcm_lite.api.main:app --port 8001   # (US8) API, /docs
+.venv\Scripts\python -m uvicorn hcm_lite.api.main:app --port 8001   # UI + API at http://localhost:8001
+# UI is hcm_lite/api/static/ served at "/"; Chainlit/app.py were removed in v4.1.0.
+# DB is now Supabase Postgres (v4.2.0) via DATABASE_URL in .env; migrations at revision 0002.
+# No demo seed/logins. On first run the site shows "Create admin"; admin then adds HR + employees
+#   (Users tab); everyone can change their own password (Profile tab). Login is by EMAIL.
+# To wipe users and start over, the admin deletes them in the Users tab (no re-seed).
 ```
 
 ## 5. Known open review items

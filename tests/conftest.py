@@ -37,15 +37,17 @@ REQUIRED_ENV = {
     "OPENAI_API_KEY": "sk-test-not-a-real-key",
     "OPENAI_MODEL": "gpt-test",
     "OPENAI_EMBEDDING_MODEL": "text-embedding-test",
-    "CHAINLIT_AUTH_SECRET": "chainlit-test-secret",
     "API_JWT_SECRET": "t" * 48,
 }
 
-# Demo users created by the seed (research D-13).
+# Demo users created by the seed (research D-13). (user id, username, employee id, email)
 DEMO_USERS = {
-    Role.EMPLOYEE: ("U0001", "employee", "E1001"),
-    Role.MANAGER: ("U0002", "manager", "M1002"),
-    Role.HR_ADMIN: ("U0003", "hr_admin", "H1003"),
+    Role.EMPLOYEE: ("U0001", "employee", "E1001", "employee@demo.hcm"),
+    Role.MANAGER: ("U0002", "manager", "M1002", "manager@demo.hcm"),
+    Role.HR_ADMIN: ("U0003", "hr_admin", "H1003", "hr_admin@demo.hcm"),
+    # Not created by the seed; used only to build an admin AuthenticatedUser in tests.
+    # A high id avoids colliding with the ``U0004+`` ids allocated to created accounts.
+    Role.ADMIN: ("U9001", "admin", "A9001", "admin@demo.hcm"),
 }
 
 
@@ -209,8 +211,8 @@ def make_user() -> Callable[..., AuthenticatedUser]:
     def _make(role: Role | str = Role.EMPLOYEE, employee_id: str | None = None,
               **overrides: Any) -> AuthenticatedUser:
         role = Role(role)
-        uid, username, eid = DEMO_USERS[role]
-        data = dict(user_id=uid, username=username, role=role,
+        uid, username, eid, email = DEMO_USERS[role]
+        data = dict(user_id=uid, username=username, email=email, role=role,
                     employee_id=employee_id or eid, display_name="Demo User",
                     department="Engineering")
         data.update(overrides)
@@ -266,6 +268,12 @@ def build_test_services(settings, sf, auditor, authz, auth_service) -> Services:
 
         if svc.metrics is not None and svc.leave is not None:
             svc.dashboard = DashboardService(svc.metrics, svc.leave)
+    except ImportError:
+        pass
+    try:
+        from hcm_lite.services.user_admin_service import UserAdminService
+
+        svc.user_admin = UserAdminService(sf, authz, auditor)
     except ImportError:
         pass
     return svc

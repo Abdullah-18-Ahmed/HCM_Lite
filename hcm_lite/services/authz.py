@@ -29,15 +29,20 @@ class Capability(StrEnum):
     EMPLOYEE_SEARCH = "employee_search"
     PENDING_LEAVE = "pending_leave"
     PAYROLL = "payroll"
+    MANAGE_EMPLOYEES = "manage_employees"  # create/edit/deactivate/delete employee accounts
+    MANAGE_HR = "manage_hr"  # create/edit hr_admin accounts (admin only)
 
 
 _SELF = frozenset({Capability.OWN_DATA, Capability.LEAVE_SELF})
 _TEAM = _SELF | {Capability.METRICS, Capability.EMPLOYEE_SEARCH, Capability.PENDING_LEAVE}
+_HR_ADMIN = _TEAM | {Capability.PAYROLL, Capability.MANAGE_EMPLOYEES}
 
 PERMISSIONS: dict[Role, frozenset[Capability]] = {
     Role.EMPLOYEE: _SELF,
     Role.MANAGER: _TEAM,
-    Role.HR_ADMIN: _TEAM | {Capability.PAYROLL},
+    Role.HR_ADMIN: _HR_ADMIN,
+    # admin is a superset of hr_admin plus HR-account management.
+    Role.ADMIN: _HR_ADMIN | {Capability.MANAGE_HR},
 }
 
 _DOC_SCOPES: dict[Role, frozenset[str]] = {
@@ -46,6 +51,7 @@ _DOC_SCOPES: dict[Role, frozenset[str]] = {
     Role.HR_ADMIN: frozenset({AccessScope.ALL_EMPLOYEES.value, AccessScope.MANAGERS.value,
                               AccessScope.HR_ADMIN.value}),
 }
+_DOC_SCOPES[Role.ADMIN] = _DOC_SCOPES[Role.HR_ADMIN]
 
 
 def allowed_doc_scopes(role: Role | str) -> frozenset[str]:
@@ -55,6 +61,18 @@ def allowed_doc_scopes(role: Role | str) -> frozenset[str]:
 
 def has(user: AuthenticatedUser, capability: Capability) -> bool:
     return capability in PERMISSIONS[user.role]
+
+
+def can_manage_role(actor_role: Role | str, target_role: Role | str) -> bool:
+    """Who may administer whom: admin → hr_admin/employee; hr_admin → employee; never admin."""
+    actor, target = Role(actor_role), Role(target_role)
+    if target == Role.ADMIN:
+        return False
+    if actor == Role.ADMIN:
+        return target in (Role.HR_ADMIN, Role.EMPLOYEE)
+    if actor == Role.HR_ADMIN:
+        return target == Role.EMPLOYEE
+    return False
 
 
 class Authz:
@@ -69,8 +87,8 @@ class Authz:
             raise AccessDenied(str(capability))
 
     async def resolve_scope(self, user: AuthenticatedUser) -> Scope:
-        """employee → self; manager → self + direct reports (queried now); hr_admin → all."""
-        if user.role == Role.HR_ADMIN:
+        """employee → self; manager → self + direct reports; hr_admin/admin → all."""
+        if user.role in (Role.HR_ADMIN, Role.ADMIN):
             return Scope(kind="all", employee_ids=None)
         if user.role == Role.MANAGER:
             async with self._sf() as session:

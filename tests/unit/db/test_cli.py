@@ -28,7 +28,7 @@ def _db(tmp_path):
 def test_status_reports_revision_and_counts(cli_env, migrated_db, capsys):
     assert cli.main(["status"]) == 0
     out = capsys.readouterr().out
-    assert "0001" in out and "head" in out
+    assert "0002" in out and "head" in out
     assert "employees" in out
 
 

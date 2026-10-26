@@ -118,3 +118,45 @@ async def test_record_logout_reasons(auth_service, make_user, tmp_path):
     await auth_service.record_logout(make_user(), "logout")
     await auth_service.record_logout(make_user(), "session_expired")
     assert _audit(tmp_path) == [("logout", "chat", "U0001"), ("session_expired", "chat", "U0001")]
+
+
+# --------------------------------------------------------------------------- email + password
+
+
+async def test_authenticate_by_email(auth_service):
+    user = await auth_service.authenticate("employee@demo.hcm", DEMO_PASSWORD, "api")
+    assert user is not None
+    assert user.email == "employee@demo.hcm" and user.role is Role.EMPLOYEE
+
+
+def _fast_hash(monkeypatch):
+    from hcm_lite.services import auth_service as module
+    from hcm_lite.services.passwords import hash_password
+
+    monkeypatch.setattr(module, "hash_password", lambda pw: hash_password(pw, iterations=1_000))
+
+
+async def test_change_password_happy(auth_service, make_user, monkeypatch, tmp_path):
+    _fast_hash(monkeypatch)
+    user = make_user(Role.EMPLOYEE)
+    await auth_service.change_password(user, DEMO_PASSWORD, "newpass12")
+    assert await auth_service.authenticate("employee@demo.hcm", "newpass12", "api") is not None
+    assert await auth_service.authenticate("employee@demo.hcm", DEMO_PASSWORD, "api") is None
+    assert ("password_changed", "api", "U0001") in _audit(tmp_path)
+
+
+async def test_change_password_wrong_old(auth_service, make_user, monkeypatch):
+    _fast_hash(monkeypatch)
+    from hcm_lite.errors import ValidationError
+
+    with pytest.raises(ValidationError) as exc:
+        await auth_service.change_password(make_user(Role.EMPLOYEE), "wrongpass", "newpass12")
+    assert exc.value.field == "old_password"
+
+
+async def test_change_password_too_short(auth_service, make_user):
+    from hcm_lite.errors import ValidationError
+
+    with pytest.raises(ValidationError) as exc:
+        await auth_service.change_password(make_user(Role.EMPLOYEE), DEMO_PASSWORD, "short")
+    assert exc.value.field == "new_password"

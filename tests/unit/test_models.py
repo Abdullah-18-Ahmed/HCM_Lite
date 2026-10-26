@@ -82,21 +82,22 @@ def test_configuration_error_lists_variables():
 
 
 def test_enum_values_match_data_model():
-    assert {r.value for r in Role} == {"employee", "manager", "hr_admin"}
+    assert {r.value for r in Role} == {"employee", "manager", "hr_admin", "admin"}
     assert {t.value for t in LeaveType} == {"annual", "sick", "casual", "unpaid", "other"}
     assert {s.value for s in LeaveStatus} == {"pending", "approved", "rejected", "cancelled"}
     assert {s.value for s in AttendanceStatus} == {"present", "remote", "absent", "leave"}
     assert {c.value for c in Channel} == {"chat", "api"}
     assert {a.value for a in AuditAction} == {
         "login_success", "login_failed", "account_locked", "logout", "session_expired",
-        "access_denied", "leave_submitted",
+        "access_denied", "leave_submitted", "password_changed", "user_created", "user_updated",
+        "user_deactivated", "user_activated", "user_deleted", "admin_created",
     }
 
 
 def test_authenticated_user_is_frozen():
     user = AuthenticatedUser(
-        user_id="U0001", username="employee", role="employee", employee_id="E1001",
-        display_name="Demo Employee", department="Engineering",
+        user_id="U0001", username="employee", email="employee@demo.hcm", role="employee",
+        employee_id="E1001", display_name="Demo Employee", department="Engineering",
     )
     assert user.role is Role.EMPLOYEE
     with pytest.raises(pydantic.ValidationError):
@@ -188,7 +189,8 @@ def test_user_record_repr_hides_password_hash():
     from datetime import datetime
 
     from hcm_lite.models.domain import UserRecord
-    rec = UserRecord(id="u1", username="alice", password_hash="pbkdf2_sha256$1$SECRETSALT$X",
+    rec = UserRecord(id="u1", username="alice", email="alice@demo.hcm",
+                     password_hash="pbkdf2_sha256$1$SECRETSALT$X",
                      role="employee", employee_id="E1", created_at=datetime(2026, 1, 1))
     assert "SECRETSALT" not in repr(rec) and "SECRETSALT" not in str(rec)
 

@@ -107,7 +107,7 @@ async def _create_user(settings: Settings, username: str, role: str, employee_id
                 return 1
             users = UserRepo(session)
             record = UserRecord(
-                id=await users.next_id(), username=username,
+                id=await users.next_id(), username=username, email=f"{username}@local",
                 password_hash=hash_password(password), role=role_value,
                 employee_id=employee_id, active=True, is_demo=False,
                 created_at=datetime.now(UTC),

@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from hcm_lite.db.repositories import EmployeeRepo, LoginFailureRepo, UserRepo
+from hcm_lite.errors import ValidationError
 from hcm_lite.models.domain import (
     AuditAction,
     AuditOutcome,
@@ -19,8 +20,10 @@ from hcm_lite.models.domain import (
     UserRecord,
 )
 from hcm_lite.services.audit import Auditor
-from hcm_lite.services.passwords import dummy_verify, verify_password
+from hcm_lite.services.passwords import dummy_verify, hash_password, verify_password
 from hcm_lite.services.tokens import TokenService
+
+MIN_PASSWORD_LENGTH = 8
 
 Clock = Callable[[], datetime]
 
@@ -61,16 +64,20 @@ class AuthService:
                     ) -> None:
         await self._auditor.audit(action, AuditOutcome.DENIED, actor=actor, channel=channel)
 
-    async def authenticate(self, username: str, password: str,
+    async def authenticate(self, identifier: str, password: str,
                            channel: Channel | str) -> AuthenticatedUser | None:
         channel = Channel(channel)
         now = self._clock()
-        if not isinstance(username, str) or not isinstance(password, str) or not username:
+        if not isinstance(identifier, str) or not isinstance(password, str) or not identifier:
             dummy_verify("")
             await self._fail(AuditAction.LOGIN_FAILED, channel)
             return None
         async with self._sf() as session:
-            user = await UserRepo(session).get_by_username(username.strip())
+            repo = UserRepo(session)
+            # Login is by email; fall back to username for legacy/CLI accounts.
+            user = await repo.get_by_email(identifier.strip())
+            if user is None:
+                user = await repo.get_by_username(identifier.strip())
         if user is None:
             dummy_verify(password)  # timing parity for unknown usernames
             await self._fail(AuditAction.LOGIN_FAILED, channel)
@@ -124,9 +131,30 @@ class AuthService:
             employee = await EmployeeRepo(session).get(user.employee_id)
         if employee is None:
             return None
-        return AuthenticatedUser(user_id=user.id, username=user.username, role=user.role,
-                                 employee_id=user.employee_id, display_name=employee.full_name,
-                                 department=employee.department)
+        return AuthenticatedUser(user_id=user.id, username=user.username, email=user.email,
+                                 role=user.role, employee_id=user.employee_id,
+                                 display_name=employee.full_name, department=employee.department)
+
+    # ------------------------------------------------------------------ password change
+
+    async def change_password(self, user: AuthenticatedUser, old_password: str,
+                              new_password: str) -> None:
+        """Verify the current password and store a new one. Raises ``ValidationError``."""
+        if not isinstance(new_password, str) or len(new_password) < MIN_PASSWORD_LENGTH:
+            raise ValidationError(
+                "new_password",
+                f"The new password must be at least {MIN_PASSWORD_LENGTH} characters",
+            )
+        async with self._sf() as session:
+            record = await UserRepo(session).get(user.user_id)
+        if record is None or not verify_password(
+            old_password.strip() if isinstance(old_password, str) else "", record.password_hash
+        ):
+            raise ValidationError("old_password", "Current password is incorrect")
+        async with self._sf() as session, session.begin():
+            await UserRepo(session).set_password(user.user_id, hash_password(new_password))
+        await self._auditor.audit(AuditAction.PASSWORD_CHANGED, AuditOutcome.OK,
+                                  actor=user.user_id, target=user.user_id, channel=Channel.API)
 
     # ------------------------------------------------------------------ tokens (API)
 

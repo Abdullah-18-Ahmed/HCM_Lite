@@ -9,17 +9,26 @@ import pytest
 
 from hcm_lite.errors import AccessDenied
 from hcm_lite.models.domain import Role
-from hcm_lite.services.authz import PERMISSIONS, Capability, allowed_doc_scopes, has
+from hcm_lite.services.authz import (
+    PERMISSIONS,
+    Capability,
+    allowed_doc_scopes,
+    can_manage_role,
+    has,
+)
 
+# (employee, manager, hr_admin, admin)
 MATRIX = {
-    Capability.OWN_DATA: (True, True, True),
-    Capability.LEAVE_SELF: (True, True, True),
-    Capability.METRICS: (False, True, True),
-    Capability.EMPLOYEE_SEARCH: (False, True, True),
-    Capability.PENDING_LEAVE: (False, True, True),
-    Capability.PAYROLL: (False, False, True),
+    Capability.OWN_DATA: (True, True, True, True),
+    Capability.LEAVE_SELF: (True, True, True, True),
+    Capability.METRICS: (False, True, True, True),
+    Capability.EMPLOYEE_SEARCH: (False, True, True, True),
+    Capability.PENDING_LEAVE: (False, True, True, True),
+    Capability.PAYROLL: (False, False, True, True),
+    Capability.MANAGE_EMPLOYEES: (False, False, True, True),
+    Capability.MANAGE_HR: (False, False, False, True),
 }
-ROLES = (Role.EMPLOYEE, Role.MANAGER, Role.HR_ADMIN)
+ROLES = (Role.EMPLOYEE, Role.MANAGER, Role.HR_ADMIN, Role.ADMIN)
 
 
 def _db(tmp_path):
@@ -50,6 +59,22 @@ async def test_resolve_scope_team_is_direct_reports_plus_self(authz, make_user, 
 async def test_resolve_scope_all(authz, make_user):
     scope = await authz.resolve_scope(make_user(Role.HR_ADMIN))
     assert scope.kind == "all" and scope.employee_ids is None
+
+
+async def test_resolve_scope_admin_is_all(authz, make_user):
+    scope = await authz.resolve_scope(make_user(Role.ADMIN))
+    assert scope.kind == "all" and scope.employee_ids is None
+
+
+def test_can_manage_role():
+    assert can_manage_role(Role.ADMIN, Role.HR_ADMIN)
+    assert can_manage_role(Role.ADMIN, Role.EMPLOYEE)
+    assert can_manage_role(Role.HR_ADMIN, Role.EMPLOYEE)
+    # nobody may manage an admin; hr_admin may not manage hr_admin; employee may manage nobody
+    assert not can_manage_role(Role.ADMIN, Role.ADMIN)
+    assert not can_manage_role(Role.HR_ADMIN, Role.HR_ADMIN)
+    assert not can_manage_role(Role.HR_ADMIN, Role.ADMIN)
+    assert not can_manage_role(Role.EMPLOYEE, Role.EMPLOYEE)
 
 
 def test_allowed_doc_scopes():

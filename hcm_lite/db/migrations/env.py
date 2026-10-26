@@ -64,7 +64,9 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     url = _database_url()
     ensure_sqlite_folder(url)
-    connectable = create_async_engine(url, poolclass=pool.NullPool)
+    from sqlalchemy.engine import make_url
+    connect_args = {"ssl": "require"} if make_url(url).get_backend_name() == "postgresql" else {}
+    connectable = create_async_engine(url, poolclass=pool.NullPool, connect_args=connect_args)
     try:
         async with connectable.connect() as connection:
             await connection.run_sync(do_run_migrations)

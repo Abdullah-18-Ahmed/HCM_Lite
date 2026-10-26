@@ -21,7 +21,7 @@ from hcm_lite.errors import ConfigurationError, ModelServiceError
 
 MIN_JWT_SECRET_LENGTH = 32
 ASYNC_DB_URL_PREFIXES = ("sqlite+aiosqlite://", "postgresql+asyncpg://")
-REQUIRED_SECRETS = ("openai_api_key", "chainlit_auth_secret", "api_jwt_secret")
+REQUIRED_SECRETS = ("openai_api_key", "api_jwt_secret")
 
 
 def _resolve_timezone(name: str) -> tzinfo:
@@ -47,7 +47,6 @@ class Settings(BaseSettings):
     database_url: SecretStr = SecretStr("sqlite+aiosqlite:///./data/hcm_lite.db")
 
     # --- Auth ---
-    chainlit_auth_secret: SecretStr
     api_jwt_secret: SecretStr
     api_token_minutes: int = Field(60, ge=5, le=480)
     api_cors_origins: str = ""

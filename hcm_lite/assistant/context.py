@@ -71,6 +71,7 @@ class Services:
     leave: Any = None
     policy: Any = None
     dashboard: Any = None
+    user_admin: Any = None
     agent: Any = None  # agents.Agent[AppContext]
     run_config: Any = None  # agents.RunConfig (tracing disabled)
     max_turns: int = 8

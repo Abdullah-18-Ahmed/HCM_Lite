@@ -11,13 +11,11 @@ from hcm_lite.errors import ConfigurationError, ModelServiceError
 
 JWT_SECRET = "j" * 48
 API_KEY = "sk-test-very-secret-key"
-CHAINLIT_SECRET = "chainlit-secret-value"
 
 REQUIRED = {
     "OPENAI_API_KEY": API_KEY,
     "OPENAI_MODEL": "gpt-test",
     "OPENAI_EMBEDDING_MODEL": "text-embedding-3-small",
-    "CHAINLIT_AUTH_SECRET": CHAINLIT_SECRET,
     "API_JWT_SECRET": JWT_SECRET,
 }
 
@@ -124,7 +122,7 @@ def test_secrets_masked_in_repr_and_str(env):
     env.setenv("VECTOR_STORE_API_KEY", "qdrant-key-value")
     s = load()
     for text in (repr(s), str(s)):
-        for secret in (API_KEY, JWT_SECRET, CHAINLIT_SECRET, "dbpassword", "qdrant-key-value"):
+        for secret in (API_KEY, JWT_SECRET, "dbpassword", "qdrant-key-value"):
             assert secret not in text
 
 

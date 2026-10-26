@@ -54,8 +54,9 @@ def _emp(eid: str, dept: str = "Engineering", manager: str | None = None,
 
 
 def _user(uid: str, username: str, eid: str, role: Role = Role.EMPLOYEE) -> UserRecord:
-    return UserRecord(id=uid, username=username, password_hash="pbkdf2_sha256$1$a$b",
-                      role=role, employee_id=eid, created_at=NOW)
+    return UserRecord(id=uid, username=username, email=f"{uid.lower()}@demo.hcm",
+                      password_hash="pbkdf2_sha256$1$a$b", role=role, employee_id=eid,
+                      created_at=NOW)
 
 
 def _leave(ref: str, eid: str = "E1001", start=date(2026, 10, 26), end=date(2026, 10, 27),

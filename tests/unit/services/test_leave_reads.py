@@ -92,7 +92,8 @@ async def test_my_balance_no_rows_no_data(leave, sf, make_user, tmp_path):
             job_title="Software Engineer", employment_status=EmploymentStatus.ACTIVE,
             hire_date=date(2020, 1, 1), manager_id="M1002", is_demo=False))
         await UserRepo(session).insert(UserRecord(
-            id="U0099", username="newemp", password_hash="pbkdf2_sha256$1$s$h",
+            id="U0099", username="newemp", email="newemp@demo.hcm",
+            password_hash="pbkdf2_sha256$1$s$h",
             role=Role.EMPLOYEE, employee_id="E9999", is_demo=False,
             created_at=datetime(2026, 10, 25, tzinfo=UTC)))
     user = make_user(Role.EMPLOYEE, user_id="U0099", username="newemp", employee_id="E9999")

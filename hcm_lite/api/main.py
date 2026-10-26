@@ -18,7 +18,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from hcm_lite.api.conversations import ConversationStore
-from hcm_lite.api.routes import assistant, auth, dashboard, health, leave, metrics, policies
+from hcm_lite.api.routes import (
+    assistant,
+    auth,
+    dashboard,
+    health,
+    leave,
+    metrics,
+    policies,
+    setup,
+    users,
+)
 from hcm_lite.assistant.context import Services
 from hcm_lite.assistant.hr_agent import build_agent, production_run_config
 from hcm_lite.assistant.tools import TOOLS
@@ -42,6 +52,7 @@ from hcm_lite.services.dashboard_service import DashboardService
 from hcm_lite.services.leave_service import LeaveService
 from hcm_lite.services.metrics_service import MetricsService
 from hcm_lite.services.policy_service import PolicyService
+from hcm_lite.services.user_admin_service import UserAdminService
 
 logger = logging.getLogger("hcm_lite.api")
 
@@ -73,6 +84,7 @@ async def lifespan(app: FastAPI):
     leave_svc = LeaveService(factory, authz, auditor, policy=policy)
     services = Services(auth=auth, metrics=metrics_svc, leave=leave_svc, policy=policy,
                         dashboard=DashboardService(metrics_svc, leave_svc),
+                        user_admin=UserAdminService(factory, authz, auditor),
                         run_config=production_run_config(),
                         max_turns=settings.agent_max_turns)
     services.agent = build_agent(settings, TOOLS)
@@ -150,3 +162,14 @@ app.include_router(metrics.router, prefix="/api/v1")
 app.include_router(leave.router, prefix="/api/v1")
 app.include_router(policies.router, prefix="/api/v1")
 app.include_router(assistant.router, prefix="/api/v1")
+app.include_router(setup.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
+
+# Serve the single-page dashboard UI. Mounted last so every /api/v1 route is matched first;
+# html=True serves index.html at "/" and the CSS/JS assets beside it.
+from pathlib import Path  # noqa: E402
+
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/", StaticFiles(directory=str(_STATIC_DIR), html=True), name="ui")

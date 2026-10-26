@@ -210,7 +210,8 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
 
 ## Active Technologies
-- Python 3.12 (`>=3.12,<3.14`); openai-agents 0.24, chainlit 2.12, fastapi 0.162 + uvicorn 0.54, sqlalchemy 2.1 (async) + aiosqlite 0.22 + alembic 1.20, pyjwt 2.15, qdrant-client 1.20 (embedded local mode), pydantic 2.14, pydantic-settings 2.16, python-dotenv 1.2, pypdf 6.21; pytest 9 + pytest-asyncio + httpx (002-hcm-lite-ai-app)
+- Python 3.12 (`>=3.12,<3.14`); openai-agents 0.24, fastapi 0.162 + uvicorn 0.54, sqlalchemy 2.1 (async) + aiosqlite 0.22 + alembic 1.20, pyjwt 2.15, qdrant-client 1.20 (embedded local mode), pydantic 2.14, pydantic-settings 2.16, python-dotenv 1.2, pypdf 6.21; pytest 9 + pytest-asyncio + httpx (002-hcm-lite-ai-app)
+- UI = first-party single-page app in `hcm_lite/api/static/` (index.html, styles.css, app.js), served by FastAPI StaticFiles at `/`; it calls the `/api/v1` endpoints. **Chainlit was removed (v4.1.0)** — do not reintroduce it. Run everything with `uvicorn hcm_lite.api.main:app --port 8001`.
 - SQLite is the HR database (`DATABASE_URL`; schema only via Alembic revisions in `hcm_lite/db/migrations/versions/`); data access only via `hcm_lite/services` → `hcm_lite/db/repositories.py`. FastAPI routes (`hcm_lite/api/`), Chainlit (`app.py`) and agent tools all call the same services.
 - Application package is `hcm_lite/`; never create a top-level `agents/` package (it shadows the SDK's `agents` module).
 

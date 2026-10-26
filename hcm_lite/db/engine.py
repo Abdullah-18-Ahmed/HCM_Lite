@@ -73,7 +73,11 @@ def ensure_sqlite_folder(url: str) -> None:
 def create_engine_for_url(url: str) -> AsyncEngine:
     """Create the async engine (and the SQLite folder) with the connection listeners."""
     ensure_sqlite_folder(url)
-    engine = _create_async_engine(url)
+    kwargs: dict[str, Any] = {}
+    if make_url(url).get_backend_name() == "postgresql":
+        # Supabase/Postgres requires TLS; pool_pre_ping survives the pooler dropping idle conns.
+        kwargs = {"connect_args": {"ssl": "require"}, "pool_pre_ping": True, "pool_recycle": 300}
+    engine = _create_async_engine(url, **kwargs)
     if engine.dialect.name == "sqlite":
         _install_sqlite_listeners(engine)
     return engine

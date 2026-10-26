@@ -23,6 +23,8 @@ from agents import (
 
 from hcm_lite.assistant.context import AppContext
 from hcm_lite.assistant.instructions import INSTRUCTIONS_CANARY, RULES
+from hcm_lite.models.domain import Role
+from hcm_lite.services.authz import PERMISSIONS, Capability
 
 MAX_MESSAGE_CHARS = 4000
 
@@ -77,8 +79,12 @@ def _leaks_instructions(text: str) -> bool:
 
 
 def _leaks_payroll(text: str, role: str) -> bool:
-    if role == "hr_admin":
-        return False
+    # Anyone the authz policy grants PAYROLL to (HR admin AND admin) may see payroll figures.
+    try:
+        if Capability.PAYROLL in PERMISSIONS[Role(role)]:
+            return False
+    except (KeyError, ValueError):
+        pass
     return bool(_PAYROLL_WORD.search(text) and _AMOUNT.search(text))
 
 
