@@ -54,23 +54,26 @@ and redeploys. Nothing resets.
 You'll get a live URL like **`https://hcm-lite-xxxx.onrender.com/`** — share this with your
 teacher (API docs at `/docs`).
 
-## Step 4 — Set it up once (it then persists)
+## Step 4 — Use the app's real onboarding flow (it then persists)
 
-Do these once; because the data lives in Neon + Qdrant, it stays put afterward.
+No demo data / seed — you create real accounts through the app itself, and because the data
+lives in Neon + Qdrant it all stays put.
 
 1. Open the URL (first load ~10–15s while it connects to Qdrant — normal).
-2. The database is empty, so the UI shows a **"Create admin"** screen. Enter your email /
-   name / password — that becomes your login.
-3. **(Recommended for a good demo)** Open the service's **Shell** tab in Render and populate
-   realistic demo data + index the HR documents:
+2. The database is empty, so the UI shows a **"Create admin"** screen (first-run setup).
+   Enter your email / name / password — this becomes the **admin** account.
+3. Sign in as the admin, then use the in-app **user management** to create accounts:
+   - Admin can create **HR** and **employee** users.
+   - HR can create **employee** users.
+   - Each user signs in with the credentials you set and can **change their own password**.
+4. **(Optional, for the AI assistant's policy Q&A)** Index the HR documents once — open the
+   service's **Shell** tab in Render and run:
    ```bash
-   python -m hcm_lite.db seed             # demo employees/attendance/leave/payroll — PRINTS demo passwords ONCE
-   python -m hcm_lite.rag.ingest ingest   # indexes the HR policy documents for the assistant
+   python -m hcm_lite.rag.ingest ingest
    ```
-   Copy the demo passwords it prints (for `employee` / `manager` / `hr_admin`) so you can show
-   the different role dashboards.
 
-That's it — the live link now keeps working with your data every time it's opened.
+That's it — the live link keeps working with the real accounts and data every time it's
+opened. The full application functionality is unchanged from local.
 
 ---
 
@@ -90,4 +93,4 @@ That's it — the live link now keeps working with your data every time it's ope
 | `relation ... does not exist` | the migration didn't run; check the deploy log for `alembic upgrade head` |
 | Assistant finds no policies | run `python -m hcm_lite.rag.ingest ingest` in the Render Shell |
 | Qdrant auth error | re-check `VECTOR_STORE_URL` and `VECTOR_STORE_API_KEY` |
-| Forgot demo passwords | re-run `python -m hcm_lite.db seed` (it reseeds and prints them again) |
+| Locked out of admin | the setup screen only appears while no admin exists; create users/roles from inside the app instead |
