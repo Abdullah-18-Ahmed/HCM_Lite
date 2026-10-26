@@ -80,13 +80,33 @@ class QdrantStore:
                 collection_name=self._collection,
                 vectors_config=models.VectorParams(size=dimension, distance=models.Distance.COSINE),
             )
-            return
-        if existing.size != dimension:
+        elif existing.size != dimension:
             raise ConfigurationError(
                 "Vector index dimension mismatch: the collection was built with a different "
                 "embedding model. Run 'python -m hcm_lite.rag.ingest rebuild'.",
                 variables=["OPENAI_EMBEDDING_MODEL"],
             )
+        self._ensure_payload_indexes()
+
+    def _ensure_payload_indexes(self) -> None:
+        """Index the payload fields we filter on.
+
+        Embedded Qdrant filters on any field without an index; Qdrant server (Cloud)
+        returns 400 ("Index required but not found") unless the field is indexed. We filter
+        on document_id (re-upsert delete), access_scope and doc_type (retrieval), so index
+        all three. Idempotent: creating an existing index is ignored.
+        """
+        from qdrant_client import models
+
+        for field in (PAYLOAD_DOCUMENT_ID, PAYLOAD_ACCESS_SCOPE, PAYLOAD_DOC_TYPE):
+            try:
+                self._client.create_payload_index(
+                    collection_name=self._collection,
+                    field_name=field,
+                    field_schema=models.PayloadSchemaType.KEYWORD,
+                )
+            except Exception:
+                pass  # already indexed, or embedded client that does not require it
 
     def _get_collection_info(self) -> Any | None:
         from qdrant_client import models
