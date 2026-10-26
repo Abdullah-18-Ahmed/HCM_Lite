@@ -1,0 +1,50 @@
+# Render Blueprint for HCM Lite — https://render.com/docs/blueprint-spec
+# Deploy: push this repo, then in Render click "New +" → "Blueprint" and pick it.
+# See DEPLOY.md for the full walkthrough (secrets, seeding, free-tier caveats).
+
+services:
+  - type: web
+    name: hcm-lite
+    runtime: python
+    plan: starter            # "free" also works, but a persistent disk needs a paid plan (see DEPLOY.md)
+    region: oregon
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    # Schema migration runs on every boot (idempotent); then the UI + API start.
+    startCommand: alembic upgrade head && uvicorn hcm_lite.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # --- Secrets: set OPENAI_API_KEY in the Render dashboard (not committed) ---
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: "gpt-4o-mini"          # change to the model you use
+      - key: OPENAI_EMBEDDING_MODEL
+        value: "text-embedding-3-small"
+      # --- API auth: Render generates a strong value automatically ---
+      - key: API_JWT_SECRET
+        generateValue: true
+      - key: API_TOKEN_MINUTES
+        value: "60"
+      # --- Persist SQLite + Qdrant on the mounted disk below ---
+      - key: DATABASE_URL
+        value: "sqlite+aiosqlite:////var/data/hcm_lite.db"
+      - key: VECTOR_STORE_PROVIDER
+        value: "qdrant"
+      - key: VECTOR_STORE_PATH
+        value: "/var/data/qdrant"
+      - key: DOCUMENTS_DIR
+        value: "data/demo/documents"
+      - key: SESSION_IDLE_MINUTES
+        value: "60"
+      - key: APP_TIMEZONE
+        value: "UTC"
+    # Persistent disk so demo users and the RAG index survive restarts/deploys.
+    # NOTE: disks require a paid plan. On the free plan, delete this block —
+    # data will reset on every restart (fine for a throwaway demo).
+    disk:
+      name: hcm-data
+      mountPath: /var/data
+      sizeGB: 1
