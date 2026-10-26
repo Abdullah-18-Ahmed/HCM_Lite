@@ -1,33 +1,29 @@
-# Render Blueprint for HCM Lite — FREE + persistent (Neon Postgres + Qdrant Cloud).
+# Render Blueprint for HCM Lite — FREE tier, simplest setup (for a demo/showcase).
 # https://render.com/docs/blueprint-spec
 # Deploy: push this repo, then on Render: New + -> Blueprint -> pick this repo -> Apply.
-# You MUST create the two free databases first and paste their values when prompted —
-# see DEPLOY.md for the click-by-click guide.
+# The only secret you provide is OPENAI_API_KEY. See DEPLOY.md.
 
 services:
   - type: web
     name: hcm-lite
     runtime: python
-    plan: free               # free web service: sleeps when idle, but data lives in the
-                             # external Postgres + Qdrant below, so nothing resets.
+    plan: free               # free web service: sleeps after ~15 min idle (fine for a demo)
     region: oregon
     branch: main
     buildCommand: pip install -r requirements.txt
-    # Run migrations on every boot (idempotent) against Postgres, then start the UI + API.
+    # Create the schema on every boot (idempotent), then start the UI + API.
     startCommand: alembic upgrade head && uvicorn hcm_lite.api.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.7"
-
-      # --- OpenAI (set OPENAI_API_KEY by hand in the Render dashboard) ---
+      # --- The only secret you set by hand (in the Render dashboard) ---
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
         value: "gpt-4o-mini"              # change to the model you use
       - key: OPENAI_EMBEDDING_MODEL
         value: "text-embedding-3-small"
-
       # --- API auth secret: Render generates a strong value automatically ---
       - key: API_JWT_SECRET
         generateValue: true
@@ -37,21 +33,8 @@ services:
         value: "60"
       - key: APP_TIMEZONE
         value: "UTC"
-
-      # --- Postgres (Neon / Supabase) — paste the async URL in the dashboard ---
-      #     Format: postgresql+asyncpg://USER:PASSWORD@HOST/DBNAME
-      - key: DATABASE_URL
-        sync: false
-
-      # --- Qdrant Cloud — paste cluster URL + API key in the dashboard ---
-      - key: VECTOR_STORE_PROVIDER
-        value: "qdrant"
-      - key: VECTOR_STORE_URL
-        sync: false
-      - key: VECTOR_STORE_API_KEY
-        sync: false
-      - key: VECTOR_STORE_COLLECTION
-        value: "hr_documents"
-# With external Postgres + Qdrant, the web service is stateless: data survives sleeps and
-# redeploys. The free plan still sleeps after ~15 min idle (first wake ~30-60s), but your
-# admin account, records and RAG index all persist.
+# Data lives on the container's temporary disk (local SQLite + embedded Qdrant), so it RESETS
+# when the free service cold-starts (after ~15 min idle, or on each redeploy). For a live demo
+# that's fine: just create the admin account when you open the site. If your teacher will open
+# the link on their own later and you want the data to still be there, see DEPLOY.md for the
+# free persistent option (Neon Postgres + Qdrant Cloud).
