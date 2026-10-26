@@ -1,61 +1,93 @@
-# Deploying HCM Lite — Render free (for a demo/showcase)
+# Deploying HCM Lite — free + persistent (keeps working)
 
 HCM Lite is a **FastAPI backend + single-page UI**, so it needs a host that runs Python
-(GitHub Pages / Vercel can't — they only serve static files or short serverless functions).
-Render's free plan runs a real `uvicorn` server, so the whole app works, including the AI
-assistant. This guide uses the `render.yaml` blueprint in the repo root.
+(not GitHub Pages / Vercel). This deploys it on **Render's free plan** and keeps all data by
+pointing it at two **free** hosted databases, so the live link keeps working for your teacher:
 
-> **Free, no credit card.** The only trade-off: the service sleeps after ~15 min idle and
-> takes ~30–60s to wake on the next visit — fine for showing a project.
+- **Neon** — free Postgres (replaces the local SQLite file)
+- **Qdrant Cloud** — free vector DB (replaces the embedded Qdrant folder)
 
-## Deploy (≈5 minutes)
+The web service is then stateless: even though the free plan sleeps when idle (and takes
+~30–60s to wake), your admin account, users, records, and the RAG index all survive restarts
+and redeploys. Nothing resets.
 
-1. Go to <https://dashboard.render.com> and sign in **with GitHub**.
-2. **New +** → **Blueprint**.
-3. Pick the **`HCM_Lite`** repo → **Apply**. Render reads `render.yaml` and creates the
-   `hcm-lite` web service on the **free** plan.
-4. When prompted, set the one secret:
-   - **`OPENAI_API_KEY`** = your OpenAI key.
-   - (`API_JWT_SECRET` is auto-generated; everything else has defaults.)
-5. **Create / Deploy.** The build installs dependencies and runs the DB migration.
+> All free, no credit card: Render, Neon, and Qdrant Cloud all have no-card free tiers.
 
-You'll get a live URL like **`https://hcm-lite-xxxx.onrender.com/`** (API docs at `/docs`).
-Share that link with your teacher.
+---
 
-## First visit (and before you demo)
+## Step 1 — Create the Postgres database (Neon)
 
-1. Open the URL. First load takes ~10–15s while embedded Qdrant initializes — normal.
-2. The database starts empty, so the UI shows a **"Create admin"** screen. Enter your email /
-   name / password — that becomes your login. No seeding needed.
-3. Sign in → you're in the dashboard. From the admin account you can add more users
-   (employee / manager) to show the role-based views.
-4. **To demo the assistant's policy Q&A**, index the HR documents once. Open the service's
-   **Shell** tab in Render and run:
-   ```bash
-   python -m hcm_lite.rag.ingest ingest
+1. Go to <https://neon.tech> → sign up → **New Project**.
+2. Open **Connection string** / **Connect** and copy the URL. It looks like:
+   `postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`
+3. **Rewrite it for this app** — change the scheme to the async driver and drop the
+   `?sslmode=...` part:
    ```
+   postgresql+asyncpg://user:pass@ep-xxx.region.aws.neon.tech/dbname
+   ```
+   Keep this as **`DATABASE_URL`**.
 
-> **Tip for the showcase:** set the admin up (and run `ingest`) shortly before you present,
-> and keep the tab open. If the service sleeps for ~15 min, the local data resets and you'd
-> recreate the admin. For a live walkthrough that's a non-issue.
+## Step 2 — Create the vector database (Qdrant Cloud)
 
-## If your teacher will open the link later on their own (optional, still free)
+1. Go to <https://cloud.qdrant.io> → sign up → **Create cluster** (free tier).
+2. From the cluster page copy:
+   - **Cluster URL** (e.g. `https://xxxx.aws.cloud.qdrant.io:6333`) → **`VECTOR_STORE_URL`**
+   - **API key** → **`VECTOR_STORE_API_KEY`**
 
-To keep the data between sleeps, point the app at free hosted databases instead of the local
-files (your repo already supports both — see `.env.example`):
+## Step 3 — Deploy on Render
 
-1. **Postgres** — create a free DB at **Neon** (neon.tech). Add a Render env var
-   `DATABASE_URL` = `postgresql+asyncpg://USER:PASS@HOST/DBNAME` (drop any `?sslmode=...`).
-2. **Qdrant** — create a free cluster at **Qdrant Cloud** (cloud.qdrant.io). Add Render env
-   vars `VECTOR_STORE_URL` and `VECTOR_STORE_API_KEY`.
+1. Go to <https://dashboard.render.com> → sign in **with GitHub**.
+2. **New +** → **Blueprint** → pick the **`HCM_Lite`** repo → **Apply**.
+   Render reads `render.yaml` and creates the `hcm-lite` web service (free plan).
+3. When prompted, fill in the values marked "set by hand":
+   | Variable | Value |
+   |---|---|
+   | `OPENAI_API_KEY` | your OpenAI key |
+   | `DATABASE_URL` | the `postgresql+asyncpg://...` URL from Step 1 |
+   | `VECTOR_STORE_URL` | the Qdrant cluster URL from Step 2 |
+   | `VECTOR_STORE_API_KEY` | the Qdrant API key from Step 2 |
 
-Redeploy, create the admin once, run `ingest` once — now it survives sleeps and redeploys.
+   (`API_JWT_SECRET` is auto-generated; the rest have defaults.)
+4. **Create / Deploy.** The build installs dependencies, then `alembic upgrade head` creates
+   the schema in your Neon database.
+
+You'll get a live URL like **`https://hcm-lite-xxxx.onrender.com/`** — share this with your
+teacher (API docs at `/docs`).
+
+## Step 4 — Set it up once (it then persists)
+
+Do these once; because the data lives in Neon + Qdrant, it stays put afterward.
+
+1. Open the URL (first load ~10–15s while it connects to Qdrant — normal).
+2. The database is empty, so the UI shows a **"Create admin"** screen. Enter your email /
+   name / password — that becomes your login.
+3. **(Recommended for a good demo)** Open the service's **Shell** tab in Render and populate
+   realistic demo data + index the HR documents:
+   ```bash
+   python -m hcm_lite.db seed             # demo employees/attendance/leave/payroll — PRINTS demo passwords ONCE
+   python -m hcm_lite.rag.ingest ingest   # indexes the HR policy documents for the assistant
+   ```
+   Copy the demo passwords it prints (for `employee` / `manager` / `hr_admin`) so you can show
+   the different role dashboards.
+
+That's it — the live link now keeps working with your data every time it's opened.
+
+---
+
+## Notes & limits
+
+- **Free plan sleeps** after ~15 min idle; the first request after that takes ~30–60s to
+  wake. Your data is safe — only the compute sleeps.
+- **Neon free tier** also auto-suspends the DB when idle and wakes on the first query (adds a
+  second or two).
+- To stop sleeping entirely, upgrade the Render service to a paid plan later — no code change.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| UI blank/slow on first load | first boot inits Qdrant (~10–15s); wait then reload |
-| Missing key error at startup | set `OPENAI_API_KEY` in the Render dashboard |
+| Deploy fails connecting to DB | `DATABASE_URL` must start with `postgresql+asyncpg://` (not `postgres://`) and have no `?sslmode=` suffix |
+| `relation ... does not exist` | the migration didn't run; check the deploy log for `alembic upgrade head` |
 | Assistant finds no policies | run `python -m hcm_lite.rag.ingest ingest` in the Render Shell |
-| Data gone after a while | expected on free (it slept); recreate the admin, or use the persistent option above |
+| Qdrant auth error | re-check `VECTOR_STORE_URL` and `VECTOR_STORE_API_KEY` |
+| Forgot demo passwords | re-run `python -m hcm_lite.db seed` (it reseeds and prints them again) |
