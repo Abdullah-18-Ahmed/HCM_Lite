@@ -165,6 +165,13 @@ app.include_router(assistant.router, prefix="/api/v1")
 app.include_router(setup.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 
+
+@app.get("/health", include_in_schema=False)
+async def _liveness() -> dict:
+    """Root liveness probe for platform health checks (the full check is /api/v1/health)."""
+    return {"status": "ok"}
+
+
 # Serve the single-page dashboard UI. Mounted last so every /api/v1 route is matched first;
 # html=True serves index.html at "/" and the CSS/JS assets beside it.
 from pathlib import Path  # noqa: E402
