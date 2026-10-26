@@ -1,0 +1,38 @@
+# Render Blueprint for HCM Lite (FREE tier) — https://render.com/docs/blueprint-spec
+# Deploy: push this repo, then on Render: New + -> Blueprint -> pick this repo -> Apply.
+# See DEPLOY.md for the click-by-click guide and the free-tier caveats.
+
+services:
+  - type: web
+    name: hcm-lite
+    runtime: python
+    plan: free               # free web service: sleeps when idle, NO persistent disk
+    region: oregon
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    # Create the schema on every boot (idempotent), then start the UI + API.
+    startCommand: alembic upgrade head && uvicorn hcm_lite.api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # --- The only secret you set by hand (in the Render dashboard) ---
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: "gpt-4o-mini"              # change to the model you use
+      - key: OPENAI_EMBEDDING_MODEL
+        value: "text-embedding-3-small"
+      # --- API auth secret: Render generates a strong value automatically ---
+      - key: API_JWT_SECRET
+        generateValue: true
+      - key: API_TOKEN_MINUTES
+        value: "60"
+      - key: SESSION_IDLE_MINUTES
+        value: "60"
+      - key: APP_TIMEZONE
+        value: "UTC"
+# NOTE: No `disk:` block — the free plan doesn't allow one. The SQLite database and the
+# Qdrant index live on the container's temporary filesystem, so they RESET whenever the
+# service cold-starts (after ~15 min idle, or on each redeploy). See DEPLOY.md for how to
+# add free persistence (Neon Postgres + Qdrant Cloud) if you want data to stick.
